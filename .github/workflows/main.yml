@@ -1,30 +1,29 @@
-name: Update Toffee Playlist
+name: Auto Update Toffee
 
 on:
-  push:
-    paths:
-      - 'update_toffee.py'  # Jodi apni python file update koren
-  workflow_dispatch:        # Jate apni manually "Run" button e click korte paren
+  schedule:
+    - cron: '0 */8 * * *' # প্রতি ৮ ঘণ্টা পর পর রান হবে
+  workflow_dispatch: # ম্যানুয়ালি রান করার অপশন
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
-      - name: Run script
+      - name: Run update script
         run: python update_toffee.py
 
-      - name: Commit and Push changes
+      - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add Toffee.m3u Toffee_data.json
+          git add .
           git commit -m "Auto update Toffee files" || exit 0
           git push
