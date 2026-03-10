@@ -1,7 +1,7 @@
-name: Toffee Auto Update
+name: Toffee Fully Auto
 on:
   schedule:
-    - cron: '0 */4 * * *'
+    - cron: '0 * * * *' # Proti ghontay run hobe
   workflow_dispatch:
 
 jobs:
@@ -9,18 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Install dependencies
-        run: pip install requests
       - name: Run Script
-        run: python update_toffee.py
+        run: |
+          pip install requests
+          python update_toffee.py
       - name: Commit and Push
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          git config --global user.name "Auto-Updater"
+          git config --global user.email "bot@github.com"
           git add Toffee.m3u
-          git commit -m "Auto Update Toffee" || exit 0
+          git commit -m "Cookie updated automatically" || exit 0
           git push
