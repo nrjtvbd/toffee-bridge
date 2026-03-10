@@ -1,32 +1,26 @@
 name: Toffee Auto Update
-
 on:
   schedule:
-    - cron: '0 */4 * * *' # প্রতি ৪ ঘণ্টা পর পর রান হবে
-  workflow_dispatch: # ম্যানুয়ালি রান করার জন্য
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-
-      - name: Install Dependencies
+      - name: Install dependencies
         run: pip install requests
-
-      - name: Run Scraper
+      - name: Run Script
         run: python update_toffee.py
-
       - name: Commit and Push
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
           git add Toffee.m3u
-          git commit -m "Auto updated Toffee playlist" || exit 0
+          git commit -m "Auto Update Toffee" || exit 0
           git push
