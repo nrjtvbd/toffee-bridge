@@ -2,24 +2,23 @@ import requests
 import re
 
 def get_toffee_cookie():
+    # সরাসরি ভিডিও পেজ থেকে কুকি নেওয়ার চেষ্টা
     url = "https://toffeelive.com/en/watch/sony-sports-ten-1-hd/py5j-JQBv9knK3AHxDTY"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
-        response = requests.get(url, headers=headers, timeout=15)
-        # সেট-কুকি হেডার থেকে কুকি খুঁজে বের করা
-        cookie = response.headers.get('Set-Cookie', '')
+        r = requests.get(url, headers=headers, timeout=15)
+        cookie = r.headers.get('Set-Cookie', '')
+        # Edge-Cache-Cookie অংশটি খুঁজে বের করা
         match = re.search(r'(Edge-Cache-Cookie=[^;]+)', cookie)
         return match.group(1) if match else None
     except:
         return None
 
-def update_playlist():
+def generate():
     cookie = get_toffee_cookie()
+    # যদি স্ক্র্যাপার ফেল করে, তবে আপনার জানা শেষ সচল কুকিটি ব্যাকআপ হিসেবে থাকবে
     if not cookie:
-        print("Failed to get fresh cookie.")
-        return
+        cookie = "Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29t:Expires=1773331373:KeyName=prod_linear:Signature=LLPpsVfQH_UcxfJ53MAWunVnd1yGEYjKYNc3d20EQJfvIzCesL8EFeyPVWQjMGs9aJA9KdIFdAL8WCOcacB6Dg"
 
     ua = "Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36"
     channels = [
@@ -28,18 +27,18 @@ def update_playlist():
         {"name": "T-Sports HD", "id": "tsports_hd"}
     ]
 
-    m3u_content = "#EXTM3U\n"
+    m3u = "#EXTM3U\n"
     for ch in channels:
-        url = f"https://bldcmprod-cdn.toffeelive.com/cdn/live/{ch['id']}/playlist.m3u8"
-        # VLC এবং libvlc এর জন্য সরাসরি হেডার ইনজেকশন
-        m3u_content += f'#EXTINF:-1, {ch["name"]}\n'
-        m3u_content += f'#EXTVLCOPT:http-user-agent={ua}\n'
-        m3u_content += f'#EXTVLCOPT:http-cookie={cookie}\n'
-        m3u_content += f'{url}\n'
+        stream = f"https://bldcmprod-cdn.toffeelive.com/cdn/live/{ch['id']}/playlist.m3u8"
+        # VLC/libvlc সরাসরি এই হেডারগুলো ব্যবহার করে প্লে করবে
+        m3u += f'#EXTINF:-1, {ch["name"]}\n'
+        m3u += f'#EXTVLCOPT:http-user-agent={ua}\n'
+        m3u += f'#EXTVLCOPT:http-referrer=https://toffeelive.com/\n'
+        m3u += f'#EXTVLCOPT:http-cookie={cookie}\n'
+        m3u += f'{stream}\n'
 
     with open("Toffee.m3u", "w", encoding="utf-8") as f:
-        f.write(m3u_content)
-    print("Playlist Updated with fresh cookie!")
+        f.write(m3u)
 
 if __name__ == "__main__":
-    update_playlist()
+    generate()
