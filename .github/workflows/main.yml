@@ -1,26 +1,26 @@
-name: Toffee Auto Update
+name: Auto Update Toffee
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */4 * * *' # Proti 4 ghonta por por
   workflow_dispatch:
 
 jobs:
-  update:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.x'
       - name: Install dependencies
         run: pip install requests
-      - name: Run Scraper
+      - name: Run Script
         run: python update_toffee.py
-      - name: Commit and Push
+      - name: Commit changes
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
           git add Toffee.m3u
-          git commit -m "Auto updated Toffee playlist" || exit 0
+          git commit -m "Auto Update Cookie" || exit 0
           git push
