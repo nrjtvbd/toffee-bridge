@@ -4,7 +4,6 @@ on:
     - cron: '*/30 * * * *'
   workflow_dispatch:
 
-# গিটহাবের নোড ২৪ ওয়ার্নিং দূর করার জন্য এই অংশটি যোগ করা হয়েছে
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -15,29 +14,40 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Fetch Cookie with BDIX Masking
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Fetch Fresh Cookie
         run: |
-          # টুফিকে রিডাইরেক্ট ফলো করতে বাধ্য করা এবং বাংলাদেশি আইপি মাস্কিং
-          COOKIE=$(curl -s -L -I "https://toffeelive.com/en/watch/t-sports/60000000000000004107" \
-          -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-          -H "X-Forwarded-For: 103.147.128.1" \
-          -H "X-Real-IP: 103.147.128.1" \
-          -H "Referer: https://toffeelive.com/" \
-          | grep -i "Set-Cookie: Edge-Cache-Cookie=" | cut -d' ' -f2 | cut -d';' -f1 | head -1)
-          
-          if [ ! -z "$COOKIE" ] && [[ "$COOKIE" == *"Edge-Cache-Cookie"* ]]; then
-            echo "$COOKIE" > cookie.txt
-            echo "Success! Cookie captured."
-          else
-            # যদি প্রথমবার ব্যর্থ হয় তবে ব্যাকআপ হিসেবে লোকাল কুকি রাখা
-            echo "toffee_locale=en" > cookie.txt
-            echo "Failed to bypass. Still getting locale cookie."
-          fi
+          python -c "
+          import requests
+          headers = {
+              'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
+              'X-Requested-With': 'com.bti.toffee',
+              'Referer': 'https://toffeelive.com/'
+          }
+          try:
+              # সরাসরি টুফি এপিআই টোকেন গেটওয়ে ট্রাই করা
+              res = requests.get('https://toffeelive.com/en/watch/t-sports/60000000000000004107', headers=headers, timeout=15, allow_redirects=True)
+              cookies = res.cookies.get_dict()
+              if 'Edge-Cache-Cookie' in cookies:
+                  with open('cookie.txt', 'w') as f:
+                      f.write(f'Edge-Cache-Cookie={cookies['Edge-Cache-Cookie']}')
+                  print('Success: Cookie Captured')
+              else:
+                  with open('cookie.txt', 'w') as f:
+                      f.write('toffee_locale=en')
+                  print('Failed: Still getting locale cookie')
+          except Exception as e:
+              print(f'Error: {e}')
+          "
 
       - name: Commit and Push
         run: |
           git config --global user.name "nrjtvbd-bot"
           git config --global user.email "nrjtvbd@github.com"
           git add cookie.txt
-          git commit -m "Updated Cookie with Node24 fix" || exit 0
+          git commit -m "Update Cookie via Python Engine" || exit 0
           git push
