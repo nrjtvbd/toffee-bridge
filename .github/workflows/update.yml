@@ -1,37 +1,22 @@
-name: Auto Update Toffee Cookie
-on:
-  schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4 # এখানে v4 করে দিয়েছি ওয়ার্নিং দূর করতে
-
-      - name: Fetch Cookie from Toffee
+- name: Fetch Cookie from Toffee
         run: |
-          # টুফির এপিআই থেকে সরাসরি কুকি টানার চেষ্টা
+          # টুফিকে বিশ্বাস করাতে আমরা এখন বাংলাদেশি মোবাইল নেটওয়ার্কের হেডার মাস্কিং করব
           COOKIE=$(curl -s -L -I "https://toffeelive.com/en/watch/t-sports/60000000000000004107" \
-          -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-          -H "Accept: */*" \
-          -H "Connection: keep-alive" \
-          | grep -i "set-cookie: Edge-Cache-Cookie=" | cut -d' ' -f2 | cut -d';' -f1 | head -1)
+          -H "User-Agent: Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36" \
+          -H "X-Forwarded-For: 103.147.128.1" \
+          -H "Client-IP: 103.147.128.1" \
+          -H "X-Real-IP: 103.147.128.1" \
+          | grep -i "Set-Cookie: Edge-Cache-Cookie=" | cut -d' ' -f2 | cut -d';' -f1 | head -1)
           
-          if [ ! -z "$COOKIE" ]; then
+          if [ ! -z "$COOKIE" ] && [[ "$COOKIE" == *"Edge-Cache-Cookie"* ]]; then
             echo "$COOKIE" > cookie.txt
-            echo "Bingo! Cookie found: $COOKIE"
+            echo "Success: $COOKIE"
           else
-            echo "Failed to fetch Edge-Cache-Cookie. Saving default."
-            echo "toffee_locale=en" > cookie.txt
+            echo "Blocking detected. Trying alternative..."
+            # দ্বিতীয় চেষ্টা: সনি স্পোর্টস পেজ দিয়ে
+            COOKIE=$(curl -s -L -I "https://toffeelive.com/en/watch/sony-sports-ten-1-hd/60000000000000004118" \
+            -H "User-Agent: Mozilla/5.0 (Linux; Android 10; SM-G973F)" \
+            -H "X-Forwarded-For: 203.76.96.1" \
+            | grep -i "Set-Cookie: Edge-Cache-Cookie=" | cut -d' ' -f2 | cut -d';' -f1 | head -1)
+            echo "$COOKIE" > cookie.txt
           fi
-
-      - name: Commit and Push
-        run: |
-          git config --global user.name "nrjtvbd-bot"
-          git config --global user.email "nrjtvbd@github.com"
-          git add cookie.txt
-          git commit -m "Updated fresh Toffee cookie" || exit 0
-          git push
