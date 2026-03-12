@@ -1,22 +1,45 @@
-- name: Fetch Cookie from Toffee
+name: Auto Update Toffee Cookie
+on:
+  schedule:
+    - cron: '*/30 * * * *' # প্রতি ৩০ মিনিট পর পর চলবে যাতে Expire না হয়
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Fetch Cookie with BDIX Masking
         run: |
-          # টুফিকে বিশ্বাস করাতে আমরা এখন বাংলাদেশি মোবাইল নেটওয়ার্কের হেডার মাস্কিং করব
+          # আমরা এখন বাংলাদেশের একটি কমন ব্রডব্যান্ড আইপি মাস্ক করছি (103.x.x.x)
+          # এবং টুফির অফিসিয়াল মোবাইল এপিআই রিকোয়েস্ট নকল করছি
           COOKIE=$(curl -s -L -I "https://toffeelive.com/en/watch/t-sports/60000000000000004107" \
           -H "User-Agent: Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36" \
           -H "X-Forwarded-For: 103.147.128.1" \
-          -H "Client-IP: 103.147.128.1" \
           -H "X-Real-IP: 103.147.128.1" \
+          -H "Client-IP: 103.147.128.1" \
+          -H "X-Requested-With: com.bti.toffee" \
           | grep -i "Set-Cookie: Edge-Cache-Cookie=" | cut -d' ' -f2 | cut -d';' -f1 | head -1)
           
           if [ ! -z "$COOKIE" ] && [[ "$COOKIE" == *"Edge-Cache-Cookie"* ]]; then
             echo "$COOKIE" > cookie.txt
-            echo "Success: $COOKIE"
+            echo "Bingo! BDIX Masking Success."
           else
-            echo "Blocking detected. Trying alternative..."
-            # দ্বিতীয় চেষ্টা: সনি স্পোর্টস পেজ দিয়ে
-            COOKIE=$(curl -s -L -I "https://toffeelive.com/en/watch/sony-sports-ten-1-hd/60000000000000004118" \
-            -H "User-Agent: Mozilla/5.0 (Linux; Android 10; SM-G973F)" \
-            -H "X-Forwarded-For: 203.76.96.1" \
+            # যদি তাও ব্যর্থ হয়, তবে সরাসরি অ্যাপ টোকেন এপিআই ট্রাই করবে
+            COOKIE=$(curl -s -X POST "https://toffeelive.com/api/v1/get-token" \
+            -H "Content-Type: application/json" \
+            -H "X-Forwarded-For: 45.125.220.1" \
+            -d '{"platform": "web", "device_id": "123456789"}' -i \
             | grep -i "Set-Cookie: Edge-Cache-Cookie=" | cut -d' ' -f2 | cut -d';' -f1 | head -1)
             echo "$COOKIE" > cookie.txt
           fi
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "nrjtvbd-bot"
+          git config --global user.email "nrjtvbd@github.com"
+          git add cookie.txt
+          git commit -m "Updated BDIX Cookie" || exit 0
+          git push
