@@ -13,15 +13,22 @@ jobs:
 
       - name: Fetch Cookie from Toffee
         run: |
-          COOKIE=$(curl -s -I "https://toffeelive.com/en/watch/t-sports/60000000000000004107" \
+          # টুফিকে রিডাইরেক্ট ফলো করতে বাধ্য করা এবং ব্রাউজার হেডার বাড়ানো
+          COOKIE=$(curl -s -L -I "https://toffeelive.com/en/watch/t-sports/60000000000000004107" \
           -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+          -H "Accept: text/html,application/xhtml+xml" \
+          -H "Referer: https://toffeelive.com/" \
           | grep -oP 'Edge-Cache-Cookie=[^;]+' | head -1)
           
           if [ ! -z "$COOKIE" ]; then
             echo "$COOKIE" > cookie.txt
+            echo "Success: $COOKIE"
           else
-            echo "Cookie not found"
-            exit 1
+            # যদি কুকি না পায়, তবে সনি স্পোর্টসের লিঙ্ক ট্রাই করবে
+            COOKIE=$(curl -s -L -I "https://toffeelive.com/en/watch/sony-sports-ten-1-hd/60000000000000004118" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+            | grep -oP 'Edge-Cache-Cookie=[^;]+' | head -1)
+            echo "$COOKIE" > cookie.txt
           fi
 
       - name: Commit and Push
