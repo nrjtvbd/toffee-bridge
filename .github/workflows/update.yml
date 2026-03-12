@@ -15,33 +15,37 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # v4 থেকে v5 করা হয়েছে
         with:
-          python-version: '3.9'
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install requests
 
       - name: Fetch Fresh Cookie
         run: |
           python -c "
           import requests
           headers = {
-              'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
               'X-Requested-With': 'com.bti.toffee',
               'Referer': 'https://toffeelive.com/'
           }
           try:
-              # সরাসরি টুফি এপিআই টোকেন গেটওয়ে ট্রাই করা
-              res = requests.get('https://toffeelive.com/en/watch/t-sports/60000000000000004107', headers=headers, timeout=15, allow_redirects=True)
+              res = requests.get('https://toffeelive.com/en/watch/t-sports/60000000000000004107', headers=headers, timeout=15)
               cookies = res.cookies.get_dict()
-              if 'Edge-Cache-Cookie' in cookies:
-                  with open('cookie.txt', 'w') as f:
-                      f.write(f'Edge-Cache-Cookie={cookies['Edge-Cache-Cookie']}')
-                  print('Success: Cookie Captured')
-              else:
-                  with open('cookie.txt', 'w') as f:
-                      f.write('toffee_locale=en')
-                  print('Failed: Still getting locale cookie')
+              cookie_val = cookies.get('Edge-Cache-Cookie', 'toffee_locale=en')
+              
+              # কুকি ফরম্যাট ঠিক করা
+              final_cookie = f'Edge-Cache-Cookie={cookie_val}' if 'URLPrefix' in cookie_val else cookie_val
+              
+              with open('cookie.txt', 'w') as f:
+                  f.write(final_cookie)
+              print(f'Result: {final_cookie[:30]}...')
           except Exception as e:
               print(f'Error: {e}')
+              with open('cookie.txt', 'w') as f:
+                  f.write('toffee_locale=en')
           "
 
       - name: Commit and Push
