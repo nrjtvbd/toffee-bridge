@@ -4,37 +4,35 @@ import re
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # 1. Toffee theke fresh cookie/signature newar logic
         ua = "Mozilla/5.0 (Linux; Android 9; Redmi S2 Build/PKQ1.181203.001) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.7049.79 Mobile Safari/537.36"
-        target_url = "https://toffeelive.com/en/watch/py5j-JQBv9knK3AHxDTY"
+        toffee_url = "https://toffeelive.com/en/watch/py5j-JQBv9knK3AHxDTY"
         
         headers = {"User-Agent": ua, "Referer": "https://toffeelive.com/"}
         
         try:
-            response = requests.get(target_url, headers=headers, timeout=10)
-            cookie_header = response.headers.get('Set-Cookie', '')
+            r = requests.get(toffee_url, headers=headers, timeout=15)
+            cookie_header = r.headers.get('Set-Cookie', '')
             match = re.search(r'(Edge-Cache-Cookie=[^;]+)', cookie_header)
-            cookie = match.group(1) if match else ""
-        except:
-            cookie = ""
+            fresh_cookie = match.group(1) if match else ""
+        except Exception as e:
+            fresh_cookie = ""
 
-        # 2. M3U Playlist jenerate kora
-        # Ekhane apni apnar channel gulo add korun
+        # চ্যানেল লিস্ট
         channels = [
             {"name": "Sony Sports 1 HD", "id": "sony_sports_1_hd"},
+            {"name": "Sony Sports 2 HD", "id": "sony_sports_2_hd"},
             {"name": "T-Sports HD", "id": "tsports_hd"}
         ]
 
-        playlist = "#EXTM3U\n"
+        m3u = "#EXTM3U\n"
         for ch in channels:
-            stream_url = f"https://bldcmprod-cdn.toffeelive.com/cdn/live/{ch['id']}/playlist.m3u8"
-            playlist += f'#EXTINF:-1, {ch["name"]}\n'
-            playlist += f'#EXTVLCOPT:http-user-agent={ua}\n'
-            playlist += f'#EXTVLCOPT:http-cookie={cookie}\n'
-            playlist += f'{stream_url}\n'
+            m3u += f'#EXTINF:-1, {ch["name"]}\n'
+            m3u += f'#EXTVLCOPT:http-user-agent={ua}\n'
+            m3u += f'#EXTVLCOPT:http-cookie={fresh_cookie}\n'
+            m3u += f'https://bldcmprod-cdn.toffeelive.com/cdn/live/{ch["id"]}/playlist.m3u8\n'
 
-        # 3. Response pathano
         self.send_response(200)
         self.send_header('Content-type', 'application/vnd.apple.mpegurl')
+        self.send_header('Access-Control-Allow-Origin', '*') # এটি প্লেয়ারের জন্য সুবিধা দেয়
         self.end_headers()
-        self.wfile.write(playlist.encode('utf-8'))
+        self.wfile.write(m3u.encode('utf-8'))
